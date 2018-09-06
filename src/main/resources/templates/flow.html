@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>webchart--流程图</title>
+    <meta charset='utf-8'>
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="Cache" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <!--<meta name="Keywords" content="在线时序图, 在线流程图, webchart, webflow, 免费在线作图工具, 代码作图, 代码绘制, 时序图, 流程图, 代码绘制流程图, 代码绘制时序图">-->
+    <!--<meta name="description" content="webchart提供免费在线制作时序图,流程图,使用简单的描述代码绘制图形,方便快捷,易于修改、分享" />-->
+    <link href="../static/css/style.css" rel="stylesheet"/>
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/raphael/2.2.7/raphael.min.js"></script>
+    <script src="https://cdn.bootcss.com/underscore.js/1.8.3/underscore-min.js"></script>
+    <script src="https://cdn.bootcss.com/ace/1.2.9/ace.js"></script>
+    <script src="https://cdn.bootcss.com/flowchart/1.6.6/flowchart.min.js"></script>
+    <script src="../static/jslib/svginnerhtml.min.js"></script>
+</head>
+
+<body>
+    <div id="main">
+    	<div class="tab">
+            <label class="logo">Web Chart</label>
+			<!--<a href="http://localhost:8099/index">时序图</a>-->
+			<!--<a class="active"  href="http://localhost:8099/flow">流程图</a>-->
+    	</div>
+        <section id="demo2">
+            <div class="toolbar">
+                <div class="left">
+                    主题:
+                    <select class="theme">
+                        <option value="1">黑白</option>
+                        <option value="2" selected>彩色</option>
+                    </select>
+                </div>
+                <div class="right">
+                    <a href="#" class="download">下载图片</a>
+                    | <a href="#" class="case">示例</a>
+                </div>
+            </div>
+            <div class="flow" th:text="${value}"></div>
+            <table align="center" class="inner">
+                <tr>
+                    <td class="diagram diagram2">This should be a diagram! If you do not see it you need Javascript enabled</td>
+                </tr>
+            </table>
+        </section>
+    </div>
+    <!--<a href="https://github.com/huhai463127310/webchart"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>-->
+    <script type="text/javascript">
+    $(document).ready(function() {
+        var code_default ='st=>start: Start|past:>http://www.google.com[blank]\n'+
+                'e=>end: End|future:>http://www.google.com\n'+
+                'op1=>operation: My Operation|past\n'+
+                'op2=>operation: Stuff|current\n'+
+                'sub1=>subroutine: My Subroutine|invalid\n'+
+                'cond=>condition: Yes\n'+
+                'or No?|approved:>http://www.google.com\n'+
+                'c2=>condition: Good idea|rejected\n'+
+                'io=>inputoutput: catch something...|future\n'+
+                'st->op1(right)->cond\n'+
+                'cond(yes, right)->c2\n'+
+                'cond(no)->sub1(left)->op1\n'+
+                'c2(yes)->io->e\n'+
+                'c2(no)->op2->e';
+
+        function setup_editor(div, nr) {
+
+            var editor_div = div.find(".flow");
+            var diagram_div = div.find(".diagram");
+            var theme_div = div.find(".theme" );
+            var download_link = div.find('.download');
+
+            // Setup the editor diagram
+            var editor = ace.edit(editor_div.get(0));
+            editor.$blockScrolling = Infinity;
+            editor.setTheme("ace/theme/crimson_editor");
+            editor.getSession().setMode("ace/mode/asciidoc");
+            editor.getSession().on('change', _.debounce(on_change, 100));
+//            loadData(editor);
+            $('.case').click({editor:editor},resetData);
+
+            download_link.click(function(ev) {
+                var svg = diagram_div.find('svg')[0];
+                var width = parseInt(svg.width.baseVal.value);
+                var height = parseInt(svg.height.baseVal.value);
+                var data = editor.getValue();
+                var xml = '<?xml version="1.0" encoding="utf-8" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd"><svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" xmlns:xlink="http://www.w3.org/1999/xlink"><source><![CDATA[' + data + ']]></source>' + svg.innerHTML + '</svg>';
+
+                var a = $(this);
+                a.attr("download", "flow_diagram.svg"); // TODO I could put title here
+                a.attr("href", "data:image/svg+xml," + encodeURIComponent(xml));
+            });
+
+            theme_div.change(on_change);
+            on_change();
+
+            function on_change() {
+                try {
+                    var diagram = flowchart.parse(editor.getValue());
+//                    saveData(editor);
+                    editor.getSession().setAnnotations([]);
+
+                    // Clear out old diagram
+                    diagram_div.html('');
+                    var nr = theme_div.val();
+                    // Draw
+                    if (nr == '1') {
+                        diagram.drawSVG(diagram_div.get(0));
+                    } else if (nr === '2') {
+                        diagram.drawSVG(diagram_div.get(0), {
+                            'flowstate': {
+                                'past': {
+                                    'fill': '#CCCCCC',
+                                    'font-size': 12
+                                },
+                                'current': {
+                                    'fill': 'yellow',
+                                    'font-color': 'red',
+                                    'font-weight': 'bold'
+                                },
+                                'future': {
+                                    'fill': '#FFFF99'
+                                },
+                                'invalid': {
+                                    'fill': '#444444'
+                                },
+                                'approved': {
+                                    'fill': '#58C4A3',
+                                    'font-size': 12,
+                                    'yes-text': 'APPROVED',
+                                    'no-text': 'n/a'
+                                },
+                                'rejected': {
+                                    'fill': '#C45879',
+                                    'font-size': 12,
+                                    'yes-text': 'n/a',
+                                    'no-text': 'REJECTED'
+                                }
+                            }
+                        });
+                    }
+
+                } catch (err) {
+                    var annotation = {
+                        type: "error", // also warning and information
+                        column: 0,
+                        row: 0,
+                        text: err.message
+                    };
+                    if (err && err.loc) {
+                        annotation.row = err.loc.first_line - 1;
+                        annotation.column = err.loc.first_column;
+                    }
+                    editor.getSession().setAnnotations([annotation]);
+                    throw err;
+                }
+            }
+
+
+        }
+        setup_editor($('#demo2'));
+//        function loadData (editor){
+//            var data =localStorage.getItem('code_flow');
+//            if(data && data!==''){
+//                editor.setValue(data);
+//                editor.gotoLine(1);
+//            }
+//        }
+//        function saveData (editor){
+//            var code = editor.getValue();
+//            if( code!==''&& code!==code_default ){
+//                localStorage.setItem('code_flow',code);
+//            }
+//        }
+        function resetData (event){
+            var init_default =event.data.editor.getValue();
+            if(init_default !== code_default) {
+                var result = confirm('提示：示例代码将覆盖现有代码，刷新页面即可恢复。确认继续？');
+                if (result) {
+                    event.data.editor.setValue(code_default);
+                    event.data.editor.gotoLine(1);
+                }
+            }
+        }
+   });
+    </script>
+    <!--百度统计-->
+    <script>
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?6170e1119afef70fda29a507d082b10f";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+</body>
+
+</html>
