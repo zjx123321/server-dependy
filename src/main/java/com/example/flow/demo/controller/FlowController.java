@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 @Controller
 public class FlowController {
 
-    @RequestMapping("/{path}")
+//    @RequestMapping("/{path}")
     public String index(Model model, @PathVariable("path") String path) {
 
         model.addAttribute("value", "st=>start: Start|past\n" +
@@ -39,10 +39,22 @@ public class FlowController {
     @Resource
     private LogCollectService logCollectService;
 
-//    @RequestMapping("/")
+    @RequestMapping("/")
     @ResponseBody
     public void execute() {
         logCollectService.collect("d6c09b9b-8538-4643-a9f5-4860a6a533a5");
+    }
+
+    @RequestMapping("/hello")
+    @ResponseBody
+    public String hello() {
+        return "hello";
+    }
+
+    @RequestMapping("/zjx")
+    @ResponseBody
+    public String zjx() {
+        return "zjx";
     }
 
 }
